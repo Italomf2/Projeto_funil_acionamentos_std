@@ -1,9 +1,3 @@
-# ================================================================
-# PAINEL FUNIL DE ACIONAMENTOS – SANTANDER
-# RODAR:    streamlit run funil_acionamentos.py
-# INSTALAR: pip install streamlit pandas openpyxl plotly requests
-# ================================================================
-
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -12,7 +6,6 @@ from datetime import datetime
 import requests
 import io
 
-# ── Configuração da página ───────────────────────────────────
 st.set_page_config(
     page_title="Funil de Acionamentos – Santander",
     page_icon="📞",
@@ -20,7 +13,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Tela de login ────────────────────────────────────────────
 if "logado" not in st.session_state:
     st.session_state.logado = False
 
@@ -41,7 +33,6 @@ if not st.session_state.logado:
                 st.error("Senha incorreta!")
     st.stop()
 
-# ── Estilos ──────────────────────────────────────────────────
 st.markdown("""
 <style>
     .stApp { background-color: #0f1117; color: #e0e0e0; }
@@ -62,12 +53,10 @@ st.markdown("""
         padding: 6px 14px; font-size: 13px; color: #ffaaaa;
         margin-bottom: 16px; display: inline-block;
     }
-
-    /* KPI padrão – vermelho Santander */
     .kpi-card {
         flex: 1 1 auto;
         width: 100%;
-        min-width: 60px;
+        min-width: 100px;
         background: #1c1f2e;
         border-left: 4px solid #EC0000;
         border-radius: 10px;
@@ -78,13 +67,12 @@ st.markdown("""
         display: flex;
         flex-direction: column;
         justify-content: center;
+        text-align: center;
     }
     .kpi-label { font-size: 11px; color: #888; text-transform: uppercase;
                  letter-spacing: 1px; font-weight: 700; }
-    .kpi-value { font-size: 22px; font-weight: 800; color: #fff; line-height: 1.2; }
+    .kpi-value { font-size: 25px; font-weight: 800; color: #fff; line-height: 1.2; }
     .kpi-sub   { font-size: 11px; color: #aaa; margin-top: 3px; font-weight: 600; }
-
-    /* KPI comparativo – coluna central */
     .kpi-delta {
         background: #12141f; border: 1px solid #2a2d3e;
         border-radius: 10px; padding: 10px 8px; margin-bottom: 10px;
@@ -96,7 +84,6 @@ st.markdown("""
     .delta-down  { font-size: 17px; font-weight: 900; color: #ef4444; }
     .delta-flat  { font-size: 17px; font-weight: 800; color: #888; }
     .delta-sub   { font-size: 10px; color: #666; margin-top: 2px; }
-
     .stTabs [data-baseweb="tab-list"] { background-color: #1c1f2e; border-radius: 8px; }
     .stTabs [data-baseweb="tab"]      { color: #aaa; }
     .stTabs [aria-selected="true"]    { color: #EC0000 !important;
@@ -104,8 +91,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── Arquivo de dados ─────────────────────────────────────────
-# ⚠️ Troque o ID do Drive a cada mês (parte entre /d/ e /export)
 URL_ARQUIVO = "https://docs.google.com/spreadsheets/d/1P5KCkDHbheZsaNvcJgewOGjXfrasuuib/export?format=xlsx"
 NOME_SHEET  = "BD"
 
@@ -124,7 +109,7 @@ except Exception as e:
     st.stop()
 
 df = df_raw.copy()
-# Converte coluna MÊS para formato legível "abr/26"
+
 if "MÊS" in df.columns:
     def formatar_mes(val):
         try:
@@ -133,14 +118,12 @@ if "MÊS" in df.columns:
                         7:"jul",8:"ago",9:"set",10:"out",11:"nov",12:"dez"}
             return f"{meses_pt[dt.month]}/{str(dt.year)[2:]}"
         except:
-            return str(val).strip()  # se já vier como texto, mantém como está
+            return str(val).strip()
     df["MÊS"] = df["MÊS"].apply(formatar_mes)
 
-# DIA UTIL como inteiro
 if "DIA UTIL" in df.columns:
     df["DIA UTIL"] = pd.to_numeric(df["DIA UTIL"], errors="coerce").fillna(0).astype(int)
 
-# Converte campos numéricos (remove R$, pontos, troca vírgula por ponto)
 COLUNAS_NUM = [
     "CLIENTE","CARTEIRA/BASE",
     "QTD DISCAGENS","QTD CLIENTES DISCADOS","$ DISCAGENS",
@@ -150,27 +133,19 @@ COLUNAS_NUM = [
     "QTD APROVAÇÃO","$ APROVAÇÃO",
     "PAGOS","CASH NOVO","CONTÁBIL",
 ]
+
 def parse_numero_br(valor):
-    """
-    Converte número para float entendendo os dois formatos possíveis:
-    - Formato BR com texto: "R$ 1.309.047.301,02" → 1309047301.02
-    - Número puro do Excel:  "1309047301.02"       → 1309047301.02  (não remove o ponto decimal!)
-    """
     s = str(valor).strip().replace("R$", "").replace(" ", "")
     if "," in s and "." in s:
-        # Formato BR: ponto = milhar, vírgula = decimal → remove pontos, troca vírgula
         s = s.replace(".", "").replace(",", ".")
     elif "," in s:
-        # Só vírgula: vírgula é decimal
         s = s.replace(",", ".")
-    # Se só tem ponto (float puro do Excel): não faz nada, já está correto
     return pd.to_numeric(s, errors="coerce")
 
 for col in COLUNAS_NUM:
     if col in df.columns:
         df[col] = df[col].apply(parse_numero_br).fillna(0)
 
-# ── Sidebar – filtros ─────────────────────────────────────────
 st.sidebar.image(
     "https://upload.wikimedia.org/wikipedia/commons/b/b8/Banco_Santander_Logotipo.svg",
     width=160,
@@ -203,15 +178,14 @@ modo_dia = st.sidebar.radio(
     ["📅 Selecionar Dia Útil", "⚖️ Comparar dois dias"],
 )
 
-# Padrão: último DU disponível (dia mais recente do arquivo)
 dia_selecionado = max(dus_disp) if dus_disp else None
 dia_a = dia_b = None
-modo_comp     = False
+modo_comp = False
 
 if modo_dia == "📅 Selecionar Dia Útil":
     dia_selecionado = st.sidebar.selectbox(
         "Dia Útil", dus_disp,
-        index=len(dus_disp)-1,   # começa no último DU
+        index=len(dus_disp)-1,
     )
 elif modo_dia == "⚖️ Comparar dois dias":
     modo_comp = True
@@ -223,20 +197,17 @@ elif modo_dia == "⚖️ Comparar dois dias":
     )
     dia_a, dia_b = slider_vals[0], slider_vals[1]
 
-# ── FILTRO: MÊS A e MÊS B (vinculado ao modo comparativo) ───
 meses_disp = sorted(df["MÊS"].dropna().unique().tolist()) if "MÊS" in df.columns else []
 
 if len(meses_disp) > 0:
     st.sidebar.markdown("### 📆 Mês")
 
     if modo_dia == "⚖️ Comparar dois dias":
-        # No modo comparativo: seleciona Mês A e Mês B separadamente
         col_ma, col_mb = st.sidebar.columns(2)
         mes_a = col_ma.selectbox("Mês A", meses_disp, index=0, key="mes_a")
         mes_b = col_mb.selectbox("Mês B", meses_disp, index=len(meses_disp)-1, key="mes_b")
-        mes_filtro = meses_disp   # sem restrição global; filtro por mês é feito no comparativo
+        mes_filtro = meses_disp
     else:
-        # No modo normal: multiselect padrão
         mes_filtro = st.sidebar.multiselect(
             "Selecione o(s) mês(es)",
             options=meses_disp,
@@ -252,9 +223,7 @@ else:
 st.sidebar.markdown("---")
 st.sidebar.caption("Os dados são atualizados diariamente pelo fluxo de consolidação.")
 
-# ── Funções auxiliares ────────────────────────────────────────
 def filtrar(dataframe, dia=None):
-    """Aplica filtros de mês, macro, segmento e (opcionalmente) dia útil."""
     d = dataframe.copy()
     if "MÊS"     in d.columns: d = d[d["MÊS"].isin(mes_filtro)]
     if "MACRO"    in d.columns: d = d[d["MACRO"].isin(macro_filtro)]
@@ -264,7 +233,6 @@ def filtrar(dataframe, dia=None):
     return d
 
 def calcular_kpis(dataframe):
-    """Retorna dicionário com todos os indicadores calculados."""
     def s(col):  return dataframe[col].sum() if col in dataframe.columns else 0
     def si(col): return int(s(col))
     def p(n, d): return (n / d * 100) if d > 0 else 0
@@ -291,7 +259,6 @@ def calcular_kpis(dataframe):
     )
 
 def kpi_card(col, label, valor, sub=""):
-    """Cartão KPI vermelho Santander."""
     valor = valor.replace(",", "X").replace(".", ",").replace("X", ".")
     col.markdown(f"""
     <div class="kpi-card">
@@ -301,13 +268,6 @@ def kpi_card(col, label, valor, sub=""):
     </div>""", unsafe_allow_html=True)
 
 def delta_card(col, label, val_a, val_b, fmt="int", bom_subir=True):
-    """
-    Card comparativo central com seta colorida.
-      ▲ verde  → B > A e subir é bom  (ou B < A e subir é ruim)
-      ▼ vermelho → o contrário
-      =  cinza  → sem variação
-    fmt: 'int' | 'pct' | 'moeda'
-    """
     diff  = val_b - val_a
     pct_d = (diff / val_a * 100) if val_a != 0 else 0
 
@@ -330,27 +290,23 @@ def delta_card(col, label, val_a, val_b, fmt="int", bom_subir=True):
         <div class="delta-sub">{pct_str}</div>
     </div>""", unsafe_allow_html=True)
 
-# ── Filtragem ────────────────────────────────────────────────
 if modo_comp:
-    # Filtra cada lado pelo seu próprio mês, se houver mais de um mês disponível
     if mes_a and mes_b and len(meses_disp) > 0:
         df_dA = filtrar(df[df["MÊS"] == mes_a], dia_a)
         df_dB = filtrar(df[df["MÊS"] == mes_b], dia_b)
     else:
         df_dA = filtrar(df, dia_a)
         df_dB = filtrar(df, dia_b)
-    df_f  = filtrar(df, dia_b)        # exibe snapshot do DU B no modo comparativo
+    df_f  = filtrar(df, dia_b)
 elif dia_selecionado is not None:
     df_f  = filtrar(df, dia_selecionado)
 else:
-    df_f  = filtrar(df, max(dus_disp))  # fallback: último DU
+    df_f  = filtrar(df, max(dus_disp))
 
-# df_todos = todos os dias com filtros de macro/segmento (usado só no gráfico de evolução)
 df_todos = filtrar(df)
 
 kp = calcular_kpis(df_f)
 
-# ── Cabeçalho ────────────────────────────────────────────────
 if   modo_comp:         subtit = f"Comparando DU {dia_a}  ×  DU {dia_b}"
 elif dia_selecionado:   subtit = f"Dia Útil {dia_selecionado}"
 else:                   subtit = "Acumulado – Todos os Dias Úteis"
@@ -361,9 +317,6 @@ st.markdown(f"""
     <br>{subtit}
 </div>""", unsafe_allow_html=True)
 
-# ════════════════════════════════════════════════════════════════
-# MODO COMPARATIVO  →  [ DU A ] | [ ▲▼ DELTA ] | [ DU B ]
-# ════════════════════════════════════════════════════════════════
 if modo_comp:
     kA = calcular_kpis(df_dA)
     kB = calcular_kpis(df_dB)
@@ -376,11 +329,8 @@ if modo_comp:
         unsafe_allow_html=True,
     )
 
-    # Layout: DU A (5 partes) | Delta (3 partes) | DU B (5 partes)
     col_a, col_mid, col_b = st.columns([5, 3, 5])
 
-    # Definição dos indicadores comparados:
-    # (label, chave_no_dicionário, formato, subir_é_bom)
     INDICADORES = [
         ("CLIENTES",   "cli",    "int",   True),
         ("DISCAGENS",  "disc",   "int",   True),
@@ -396,7 +346,6 @@ if modo_comp:
         ("% PROPOSTA", "pProp",  "pct",   True),
     ]
 
-    # ── DU A ─────────────────────────────────────────────────
     with col_a:
         st.markdown(f'<div class="section-title">Dia Útil {dia_a}</div>', unsafe_allow_html=True)
         for label, chave, _, _ in INDICADORES:
@@ -408,7 +357,6 @@ if modo_comp:
             else:
                 kpi_card(col_a, label, f"{val:,.0f}")
 
-    # ── COLUNA DELTA (centro) ─────────────────────────────────
     with col_mid:
         st.markdown(
             '<div class="section-title" style="text-align:center; padding-left:0;">'
@@ -418,7 +366,6 @@ if modo_comp:
         for label, chave, fmt, bom in INDICADORES:
             delta_card(col_mid, label, kA[chave], kB[chave], fmt, bom)
 
-    # ── DU B ─────────────────────────────────────────────────
     with col_b:
         st.markdown(f'<div class="section-title">Dia Útil {dia_b}</div>', unsafe_allow_html=True)
         for label, chave, _, _ in INDICADORES:
@@ -432,20 +379,16 @@ if modo_comp:
 
     st.markdown("---")
 
-    # ── Gráfico de barras comparativo ────────────────────────
     st.markdown('<div class="section-title">📊 Comparativo por Etapa</div>', unsafe_allow_html=True)
-    # Alterna entre quantidade e contábil usando o mesmo radio da sidebar
     if visao_funil == "# Quantidade":
         etapas = ["Discagens","Alô","CPC","CPC Novo","Propostas","Aprovadas","Pagos"]
         vA = [kA[k] for k in ["disc","alo","cpc","cpcN","prop","aprov","pagos"]]
         vB = [kB[k] for k in ["disc","alo","cpc","cpcN","prop","aprov","pagos"]]
-        # Formata com ponto como separador de milhar: 604.272
         fmt = lambda v: f"{v:,.0f}".replace(",", ".")
     else:
         etapas = ["$ Disc.","$ Alô","$ CPC","$ CPC Novo","$ Proposta","$ Aprovado","Cash Novo"]
         vA = [kA[k] for k in ["vDisc","vAlo","vCpc","vCpcN","vProp","vAprov","cash"]]
         vB = [kB[k] for k in ["vDisc","vAlo","vCpc","vCpcN","vProp","vAprov","cash"]]
-        # Formata monetário brasileiro: R$ 1.446.308.621,28
         def fmt(v):
             inteiro, decimal = f"{v:,.2f}".split(".")
             return f"R$ {inteiro.replace(',', '.')},{decimal}"
@@ -461,17 +404,15 @@ if modo_comp:
         barmode="group", paper_bgcolor="#1c1f2e", plot_bgcolor="#1c1f2e",
         font=dict(color="#e0e0e0"), height=380,
         legend=dict(orientation="h", y=1.1),
-        margin=dict(l=10, r=10, t=30, b=80),  # b=80 abre espaço embaixo para o texto
-        uniformtext=dict(mode="hide", minsize=1),  # não esconde texto pequeno
+        margin=dict(l=10, r=10, t=30, b=80),
+        uniformtext=dict(mode="hide", minsize=1),
     )
-    # Rotaciona os rótulos 90° no contábil para caber sem sobrepor
     if visao_funil == "R$ Contábil":
         fig_comp.update_traces(textangle=-90, textposition="outside", textfont=dict(size=14))
     else:
         fig_comp.update_traces(textfont=dict(size=14))
     st.plotly_chart(fig_comp, use_container_width=True)
 
-# ── Gráfico de área: variação diária por métrica ──────────
     st.markdown('<div class="section-title">📈 Variação Diária por Dia Útil</div>', unsafe_allow_html=True)
 
     df_evolucao = filtrar(df).copy()
@@ -520,7 +461,6 @@ if modo_comp:
 
             fig_d = go.Figure()
 
-            # Área sombreada
             fig_d.add_trace(go.Scatter(
                 x=dus, y=vals,
                 fill="tozeroy",
@@ -531,7 +471,6 @@ if modo_comp:
                 hoverinfo="skip",
             ))
 
-            # Pontos coloridos por delta
             for j in range(len(dus)):
                 d = deltas[j]
                 cor = "#aaa" if d is None else ("#22c55e" if d >= 0 else "#ef4444")
@@ -550,7 +489,6 @@ if modo_comp:
                     hovertemplate=f"<b>DU {dus[j]}</b><br>{nome}: {vals_str[j]}<br>Δ {delta_txt}<extra></extra>",
                 ))
 
-                # Delta % abaixo do ponto
                 if d is not None:
                     fig_d.add_annotation(
                         x=dus[j], y=vals[j],
@@ -572,9 +510,6 @@ if modo_comp:
             )
             st.plotly_chart(fig_d, use_container_width=True)
     st.stop()
-# ════════════════════════════════════════════════════════════════
-# MODO NORMAL (acumulado ou dia único)
-# ════════════════════════════════════════════════════════════════
 
 st.markdown('<div class="section-title">Visão Quantidade – Funil de Acionamento</div>', unsafe_allow_html=True)
 c1,c2,c3,c4,c5,c6,c7 = st.columns(7)
@@ -619,15 +554,12 @@ with g1:
     else:
         ey=["Carteira","$ Disc.","$ Alô","$ CPC","$ CPC Novo","$ Proposta","Cash Novo"]
         ev=[kp['cart'],kp['vDisc'],kp['vAlo'],kp['vCpc'],kp['vCpcN'],kp['vProp'],kp['cash']]
-    # Formata cada valor com separador de milhar "." e mostra % sobre o primeiro
     primeiro = ev[0] if ev[0] > 0 else 1
 
     def formatar_valor(v):
         if visao_funil == "# Quantidade":
-            # Inteiro com ponto como separador de milhar: 2.920
             return f"{v:,.0f}".replace(",", ".")
         else:
-            # Monetário brasileiro: R$ 420.320.253,39
             inteiro, decimal = f"{v:,.2f}".split(".")
             inteiro = inteiro.replace(",", ".")
             return f"R$ {inteiro},{decimal}"
@@ -640,11 +572,10 @@ with g1:
         y=ey, x=ev,
         text=textos_funil,
         textinfo="text",
-        texttemplate="%{text}",     # ativa renderização HTML no texto
+        texttemplate="%{text}",
         marker=dict(color=["#EC0000","#d40000","#b00000","#900000","#700000","#500000","#2a0000"]),
         textfont=dict(color="white", size=13),
     ))
-
     fig_f.update_layout(paper_bgcolor="#1c1f2e", plot_bgcolor="#1c1f2e",
                         font=dict(color="#e0e0e0"), height=420,
                         margin=dict(l=10,r=10,t=10,b=10))
@@ -683,7 +614,7 @@ with g3:
 
 with g4:
     st.markdown("##### 📅 Evolução por Dia Útil")
-    if "DIA UTIL" in df_todos.columns:   # mostra SEMPRE, independente do modo
+    if "DIA UTIL" in df_todos.columns:
         if visao_funil == "# Quantidade":
             ev_agg = df_todos.groupby("DIA UTIL", as_index=False).agg(
                 {"QTD PROPOSTAS":"sum","QTD APROVAÇÃO":"sum","PAGOS":"sum"})
@@ -708,7 +639,6 @@ with g4:
 
 st.markdown("---")
 
-# ── Tabela detalhada ──────────────────────────────────────────
 st.markdown('<div class="section-title">📋 Detalhamento por Macro e Segmento</div>', unsafe_allow_html=True)
 tab_q, tab_r = st.tabs(["📊 Quantidade (#)", "💰 Contábil (R$)"])
 grp_cols = [c for c in ["MACRO","SEGMENTO"] if c in df_f.columns]
@@ -738,7 +668,6 @@ st.markdown("---")
 with st.expander(f"🔍 Base Completa Filtrada ({len(df_f):,} linhas)"):
     st.dataframe(df_f, use_container_width=True, hide_index=True)
 
-# ── Rodapé ────────────────────────────────────────────────────
 st.markdown(f"""
 <div style="text-align:center; color:#555; font-size:11px; margin-top:20px; padding:10px 0;">
     Planejamento Call Center Santander &nbsp;|&nbsp;
