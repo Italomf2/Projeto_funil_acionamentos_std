@@ -37,7 +37,6 @@ st.markdown("""
 <style>
     .stApp { background-color: #0f1117; color: #e0e0e0; }
     section[data-testid="stSidebar"] { background-color: #161925; }
-
     .titulo-principal {
         font-size: 45px; font-weight: 800; color: #EC0000;
         letter-spacing: 1px; border-bottom: 2px solid #EC0000;
@@ -54,20 +53,11 @@ st.markdown("""
         margin-bottom: 16px; display: inline-block;
     }
     .kpi-card {
-        flex: 1 1 auto;
-        width: 100%;
-        min-width: 100px;
-        background: #1c1f2e;
-        border-left: 4px solid #EC0000;
-        border-radius: 10px;
-        padding: 10px 20px;
-        margin-bottom: 10px;
-        height: auto;
-        min-height: 85px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        text-align: center;
+        flex: 1 1 auto; width: 100%; min-width: 100px;
+        background: #1c1f2e; border-left: 4px solid #EC0000;
+        border-radius: 10px; padding: 10px 20px; margin-bottom: 10px;
+        height: auto; min-height: 85px; display: flex;
+        flex-direction: column; justify-content: center; text-align: center;
     }
     .kpi-label { font-size: 11px; color: #888; text-transform: uppercase;
                  letter-spacing: 1px; font-weight: 700; }
@@ -79,7 +69,7 @@ st.markdown("""
         min-height: 80px; text-align: center;
     }
     .delta-label { font-size: 9px; color: #666; text-transform: uppercase;
-                   letter-spacing: 1px; margin-bottom: 3px;font-weight: 800; }
+                   letter-spacing: 1px; margin-bottom: 3px; font-weight: 800; }
     .delta-up    { font-size: 17px; font-weight: 800; color: #22c55e; }
     .delta-down  { font-size: 17px; font-weight: 900; color: #ef4444; }
     .delta-flat  { font-size: 17px; font-weight: 800; color: #888; }
@@ -90,6 +80,39 @@ st.markdown("""
                                         border-bottom: 2px solid #EC0000; }
 </style>
 """, unsafe_allow_html=True)
+
+def fmt_qtd(v):
+    try:
+        return f"{int(float(v)):,}".replace(",", ".")
+    except:
+        return str(v)
+
+def fmt_pct(v):
+    try:
+        return f"{float(v):.2f}".replace(".", ",") + "%"
+    except:
+        return str(v)
+
+def fmt_val(v):
+    try:
+        n = float(v)
+        s = f"{n:,.2f}"
+        inteiro, dec = s.split(".")
+        inteiro = inteiro.replace(",", ".")
+        return f"R$ {inteiro},{dec}"
+    except:
+        return str(v)
+
+CHAVES_PCT = {"pAcion", "pAlo", "pCpc", "pCpcN", "pProp", "pAprov", "pPagos",
+              "pCartAcion", "pCartAlo", "pCartCpc", "pCartProp", "pCartAprov", "pCartCash"}
+
+def fmt_kpi(chave, val):
+    if chave == "cash":
+        return fmt_val(val)
+    elif chave in CHAVES_PCT:
+        return fmt_pct(val)
+    else:
+        return fmt_qtd(val)
 
 URL_ARQUIVO = "https://docs.google.com/spreadsheets/d/1P5KCkDHbheZsaNvcJgewOGjXfrasuuib/export?format=xlsx"
 NOME_SHEET  = "BD"
@@ -164,10 +187,7 @@ if not seg_filtro:
     seg_filtro = segs_disp
 
 st.sidebar.markdown("---")
-visao_funil = st.sidebar.radio(
-    "📊 Visão do Funil",
-    ["# Quantidade", "R$ Contábil"],
-)
+visao_funil = st.sidebar.radio("📊 Visão do Funil", ["# Quantidade", "R$ Contábil"])
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 📅 Dia Útil")
@@ -183,10 +203,7 @@ dia_a = dia_b = None
 modo_comp = False
 
 if modo_dia == "📅 Selecionar Dia Útil":
-    dia_selecionado = st.sidebar.selectbox(
-        "Dia Útil", dus_disp,
-        index=len(dus_disp)-1,
-    )
+    dia_selecionado = st.sidebar.selectbox("Dia Útil", dus_disp, index=len(dus_disp)-1)
 elif modo_dia == "⚖️ Comparar dois dias":
     modo_comp = True
     dia_selecionado = None
@@ -201,7 +218,6 @@ meses_disp = sorted(df["MÊS"].dropna().unique().tolist()) if "MÊS" in df.colum
 
 if len(meses_disp) > 0:
     st.sidebar.markdown("### 📆 Mês")
-
     if modo_dia == "⚖️ Comparar dois dias":
         col_ma, col_mb = st.sidebar.columns(2)
         mes_a = col_ma.selectbox("Mês A", meses_disp, index=0, key="mes_a")
@@ -209,10 +225,7 @@ if len(meses_disp) > 0:
         mes_filtro = meses_disp
     else:
         mes_filtro = st.sidebar.multiselect(
-            "Selecione o(s) mês(es)",
-            options=meses_disp,
-            default=meses_disp,
-        )
+            "Selecione o(s) mês(es)", options=meses_disp, default=meses_disp)
         if not mes_filtro:
             mes_filtro = meses_disp
         mes_a = mes_b = None
@@ -258,30 +271,35 @@ def calcular_kpis(dataframe):
         pCartAprov=p(vAprov,cart),pCartCash=p(cash,cart),
     )
 
-def kpi_card(col, label, valor, sub=""):
-    valor = valor.replace(",", "X").replace(".", ",").replace("X", ".")
+def kpi_card(col, label, valor_formatado, sub=""):
     col.markdown(f"""
     <div class="kpi-card">
         <div class="kpi-label">{label}</div>
-        <div class="kpi-value">{valor}</div>
+        <div class="kpi-value">{valor_formatado}</div>
         <div class="kpi-sub">{sub}</div>
     </div>""", unsafe_allow_html=True)
 
-def delta_card(col, label, val_a, val_b, fmt="int", bom_subir=True):
+def delta_card(col, label, val_a, val_b, fmt_tipo="int", bom_subir=True):
     diff  = val_b - val_a
     pct_d = (diff / val_a * 100) if val_a != 0 else 0
 
-    if   fmt == "int":   diff_str = f"{diff:+,.0f}"
-    elif fmt == "pct":   diff_str = f"{diff:+.2f}pp"
-    elif fmt == "moeda": diff_str = f"R$ {diff:+,.0f}"
-    else:                diff_str = f"{diff:+,.0f}"
+    if fmt_tipo == "int":
+        sinal = "+" if diff >= 0 else "-"
+        diff_str = sinal + fmt_qtd(abs(diff))
+    elif fmt_tipo == "pct":
+        diff_str = ("+" if diff >= 0 else "") + f"{diff:.2f}".replace(".", ",") + "pp"
+    elif fmt_tipo == "moeda":
+        sinal = "+" if diff >= 0 else "-"
+        diff_str = sinal + " " + fmt_val(abs(diff))
+    else:
+        diff_str = ("+" if diff >= 0 else "-") + fmt_qtd(abs(diff))
 
-    pct_str = f"({pct_d:+.1f}%)"
+    pct_str = "(" + ("+" if pct_d >= 0 else "") + f"{pct_d:.1f}".replace(".", ",") + "%)"
 
     melhora = (diff > 0 and bom_subir) or (diff < 0 and not bom_subir)
-    if   diff == 0: css, seta = "delta-flat",  "="
-    elif melhora:   css, seta = "delta-up",    "▲"
-    else:           css, seta = "delta-down",  "▼"
+    if   diff == 0: css, seta = "delta-flat", "="
+    elif melhora:   css, seta = "delta-up",   "▲"
+    else:           css, seta = "delta-down", "▼"
 
     col.markdown(f"""
     <div class="kpi-delta">
@@ -297,19 +315,18 @@ if modo_comp:
     else:
         df_dA = filtrar(df, dia_a)
         df_dB = filtrar(df, dia_b)
-    df_f  = filtrar(df, dia_b)
+    df_f = filtrar(df, dia_b)
 elif dia_selecionado is not None:
-    df_f  = filtrar(df, dia_selecionado)
+    df_f = filtrar(df, dia_selecionado)
 else:
-    df_f  = filtrar(df, max(dus_disp))
+    df_f = filtrar(df, max(dus_disp))
 
 df_todos = filtrar(df)
-
 kp = calcular_kpis(df_f)
 
-if   modo_comp:         subtit = f"Comparando DU {dia_a}  ×  DU {dia_b}"
-elif dia_selecionado:   subtit = f"Dia Útil {dia_selecionado}"
-else:                   subtit = "Acumulado – Todos os Dias Úteis"
+if   modo_comp:       subtit = f"Comparando DU {dia_a}  ×  DU {dia_b}"
+elif dia_selecionado: subtit = f"Dia Útil {dia_selecionado}"
+else:                 subtit = "Acumulado – Todos os Dias Úteis"
 
 st.markdown(f"""
 <div class="titulo-principal">
@@ -317,15 +334,14 @@ st.markdown(f"""
     <br>{subtit}
 </div>""", unsafe_allow_html=True)
 
+
 if modo_comp:
     kA = calcular_kpis(df_dA)
     kB = calcular_kpis(df_dB)
 
     st.markdown(
-        f'<div class="badge-comparar">'
-        f'⚖️ Comparando DU {dia_a} → DU {dia_b} &nbsp;|&nbsp; '
-        f'▲ Verde = melhora &nbsp;|&nbsp; ▼ Vermelho = piora'
-        f'</div>',
+        f'<div class="badge-comparar">⚖️ Comparando DU {dia_a} → DU {dia_b} &nbsp;|&nbsp; '
+        f'▲ Verde = melhora &nbsp;|&nbsp; ▼ Vermelho = piora</div>',
         unsafe_allow_html=True,
     )
 
@@ -349,33 +365,21 @@ if modo_comp:
     with col_a:
         st.markdown(f'<div class="section-title">Dia Útil {dia_a}</div>', unsafe_allow_html=True)
         for label, chave, _, _ in INDICADORES:
-            val = kA[chave]
-            if chave == "cash":
-                kpi_card(col_a, label, f"R$ {val:,.0f}")
-            elif chave.startswith("p"):
-                kpi_card(col_a, label, f"{val:.2f}%", "sobre base")
-            else:
-                kpi_card(col_a, label, f"{val:,.0f}")
+            sub = "sobre base" if chave.startswith("p") else ""
+            kpi_card(col_a, label, fmt_kpi(chave, kA[chave]), sub)
 
     with col_mid:
         st.markdown(
-            '<div class="section-title" style="text-align:center; padding-left:0;">'
-            'COMPARATIVO</div>',
-            unsafe_allow_html=True,
-        )
-        for label, chave, fmt, bom in INDICADORES:
-            delta_card(col_mid, label, kA[chave], kB[chave], fmt, bom)
+            '<div class="section-title" style="text-align:center; padding-left:0;">COMPARATIVO</div>',
+            unsafe_allow_html=True)
+        for label, chave, fmt_tipo, bom in INDICADORES:
+            delta_card(col_mid, label, kA[chave], kB[chave], fmt_tipo, bom)
 
     with col_b:
         st.markdown(f'<div class="section-title">Dia Útil {dia_b}</div>', unsafe_allow_html=True)
         for label, chave, _, _ in INDICADORES:
-            val = kB[chave]
-            if chave == "cash":
-                kpi_card(col_b, label, f"R$ {val:,.0f}")
-            elif chave.startswith("p"):
-                kpi_card(col_b, label, f"{val:.2f}%", "sobre base")
-            else:
-                kpi_card(col_b, label, f"{val:,.0f}")
+            sub = "sobre base" if chave.startswith("p") else ""
+            kpi_card(col_b, label, fmt_kpi(chave, kB[chave]), sub)
 
     st.markdown("---")
 
@@ -384,31 +388,28 @@ if modo_comp:
         etapas = ["Discagens","Alô","CPC","CPC Novo","Propostas","Aprovadas","Pagos"]
         vA = [kA[k] for k in ["disc","alo","cpc","cpcN","prop","aprov","pagos"]]
         vB = [kB[k] for k in ["disc","alo","cpc","cpcN","prop","aprov","pagos"]]
-        fmt = lambda v: f"{v:,.0f}".replace(",", ".")
+        fmt_bar = fmt_qtd
     else:
         etapas = ["$ Disc.","$ Alô","$ CPC","$ CPC Novo","$ Proposta","$ Aprovado","Cash Novo"]
         vA = [kA[k] for k in ["vDisc","vAlo","vCpc","vCpcN","vProp","vAprov","cash"]]
         vB = [kB[k] for k in ["vDisc","vAlo","vCpc","vCpcN","vProp","vAprov","cash"]]
-        def fmt(v):
-            inteiro, decimal = f"{v:,.2f}".split(".")
-            return f"R$ {inteiro.replace(',', '.')},{decimal}"
+        fmt_bar = fmt_val
 
     fig_comp = go.Figure()
     fig_comp.add_trace(go.Bar(name=f"DU {dia_a}", x=etapas, y=vA,
                               marker_color="#EC0000",
-                              text=[fmt(v) for v in vA], textposition="outside"))
+                              text=[fmt_bar(v) for v in vA], textposition="outside"))
     fig_comp.add_trace(go.Bar(name=f"DU {dia_b}", x=etapas, y=vB,
                               marker_color="#ff9999",
-                              text=[fmt(v) for v in vB], textposition="outside"))
+                              text=[fmt_bar(v) for v in vB], textposition="outside"))
     fig_comp.update_layout(
         barmode="group", paper_bgcolor="#1c1f2e", plot_bgcolor="#1c1f2e",
         font=dict(color="#e0e0e0"), height=380,
         legend=dict(orientation="h", y=1.1),
         margin=dict(l=10, r=10, t=30, b=80),
-        uniformtext=dict(mode="hide", minsize=1),
     )
     if visao_funil == "R$ Contábil":
-        fig_comp.update_traces(textangle=-90, textposition="outside", textfont=dict(size=14))
+        fig_comp.update_traces(textangle=-90, textposition="outside", textfont=dict(size=13))
     else:
         fig_comp.update_traces(textfont=dict(size=14))
     st.plotly_chart(fig_comp, use_container_width=True)
@@ -422,6 +423,7 @@ if modo_comp:
             "Discagens": "QTD DISCAGENS",
             "Alô":       "QTD ALÔ",
             "CPC":       "QTD CPC",
+            "CPC Novo":  "QTD CPC NOVO",
             "Propostas": "QTD PROPOSTAS",
             "Pagos":     "PAGOS",
         }
@@ -434,8 +436,7 @@ if modo_comp:
 
     evol = (
         df_evolucao.groupby("DIA UTIL", as_index=False)[list(metricas_delta.values())]
-        .sum()
-        .sort_values("DIA UTIL")
+        .sum().sort_values("DIA UTIL")
     )
 
     tabs_delta = st.tabs(list(metricas_delta.keys()))
@@ -455,33 +456,30 @@ if modo_comp:
             ]
 
             if visao_funil == "# Quantidade":
-                vals_str = [f"{v:,.0f}".replace(",", ".") for v in vals]
+                vals_str = [fmt_qtd(v) for v in vals]
             else:
-                vals_str = [f"R$ {v:,.0f}".replace(",", ".") for v in vals]
+                vals_str = [fmt_val(v) for v in vals]
 
             fig_d = go.Figure()
-
             fig_d.add_trace(go.Scatter(
                 x=dus, y=vals,
-                fill="tozeroy",
-                fillcolor="rgba(236,0,0,0.08)",
+                fill="tozeroy", fillcolor="rgba(236,0,0,0.08)",
                 line=dict(color="#EC0000", width=2.5),
-                mode="lines",
-                showlegend=False,
-                hoverinfo="skip",
+                mode="lines", showlegend=False, hoverinfo="skip",
             ))
 
             for j in range(len(dus)):
                 d = deltas[j]
                 cor = "#aaa" if d is None else ("#22c55e" if d >= 0 else "#ef4444")
                 seta = "" if d is None else ("▲" if d >= 0 else "▼")
-                delta_txt = "—" if d is None else f"{seta} {abs(d):.1f}%"
+                delta_txt = "—" if d is None else (
+                    f"{seta} {abs(d):.1f}".replace(".", ",") + "%"
+                )
 
                 fig_d.add_trace(go.Scatter(
                     x=[dus[j]], y=[vals[j]],
                     mode="markers+text",
-                    marker=dict(size=12, color=cor,
-                                line=dict(width=2, color="#1c1f2e")),
+                    marker=dict(size=12, color=cor, line=dict(width=2, color="#1c1f2e")),
                     text=[vals_str[j]],
                     textposition="top center",
                     textfont=dict(size=12, color="#e0e0e0"),
@@ -493,16 +491,13 @@ if modo_comp:
                     fig_d.add_annotation(
                         x=dus[j], y=vals[j],
                         text=f"<b>{delta_txt}</b>",
-                        showarrow=False,
-                        yshift=-22,
+                        showarrow=False, yshift=-22,
                         font=dict(size=12, color=cor),
                     )
 
             fig_d.update_layout(
-                paper_bgcolor="#1c1f2e",
-                plot_bgcolor="#1c1f2e",
-                font=dict(color="#e0e0e0"),
-                height=360,
+                paper_bgcolor="#1c1f2e", plot_bgcolor="#1c1f2e",
+                font=dict(color="#e0e0e0"), height=360,
                 margin=dict(l=10, r=10, t=30, b=10),
                 yaxis=dict(showgrid=True, gridcolor="#2a2d3e", showticklabels=False),
                 xaxis=dict(title="Dia Útil", dtick=1, showgrid=False),
@@ -513,35 +508,35 @@ if modo_comp:
 
 st.markdown('<div class="section-title">Visão Quantidade – Funil de Acionamento</div>', unsafe_allow_html=True)
 c1,c2,c3,c4,c5,c6,c7 = st.columns(7)
-kpi_card(c1,"CLIENTES",   f"{kp['cli']:,.0f}",  "Base total")
-kpi_card(c2,"DISCAGENS",  f"{kp['disc']:,.0f}", f"{kp['cDisc']:,.0f} únicos")
-kpi_card(c3,"ALÔ",        f"{kp['alo']:,.0f}",  f"{kp['cAlo']:,.0f} únicos")
-kpi_card(c4,"CPC",        f"{kp['cpc']:,.0f}",  f"Novo: {kp['cpcN']:,.0f}")
-kpi_card(c5,"PROPOSTAS",  f"{kp['prop']:,.0f}")
-kpi_card(c6,"APROVADAS",  f"{kp['aprov']:,.0f}")
-kpi_card(c7,"PAGOS",      f"{kp['pagos']:,.0f}")
+kpi_card(c1, "CLIENTES",  fmt_qtd(kp['cli']),  "Base total")
+kpi_card(c2, "DISCAGENS", fmt_qtd(kp['disc']), fmt_qtd(kp['cDisc']) + " únicos")
+kpi_card(c3, "ALÔ",       fmt_qtd(kp['alo']),  fmt_qtd(kp['cAlo']) + " únicos")
+kpi_card(c4, "CPC",       fmt_qtd(kp['cpc']),  "Novo: " + fmt_qtd(kp['cpcN']))
+kpi_card(c5, "PROPOSTAS", fmt_qtd(kp['prop']))
+kpi_card(c6, "APROVADAS", fmt_qtd(kp['aprov']))
+kpi_card(c7, "PAGOS",     fmt_qtd(kp['pagos']))
 
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown('<div class="section-title">Taxas de Conversão – Sobre a Base</div>', unsafe_allow_html=True)
 t1,t2,t3,t4,t5,t6,t7 = st.columns(7)
-kpi_card(t1,"% ACIONADO",f"{kp['pAcion']:.1f}%","clientes discados")
-kpi_card(t2,"% ALÔ",     f"{kp['pAlo']:.1f}%",  "clientes c/ alô")
-kpi_card(t3,"% CPC",     f"{kp['pCpc']:.2f}%",  "sobre base")
-kpi_card(t4,"% CPC NOVO",f"{kp['pCpcN']:.2f}%", "sobre base")
-kpi_card(t5,"% PROPOSTA",f"{kp['pProp']:.2f}%", "sobre base")
-kpi_card(t6,"% APROVADO",f"{kp['pAprov']:.2f}%","sobre base")
-kpi_card(t7,"% PAGOS",   f"{kp['pPagos']:.2f}%","sobre base")
+kpi_card(t1, "% ACIONADO", fmt_pct(kp['pAcion']), "clientes discados")
+kpi_card(t2, "% ALÔ",      fmt_pct(kp['pAlo']),   "clientes c/ alô")
+kpi_card(t3, "% CPC",      fmt_pct(kp['pCpc']),   "sobre base")
+kpi_card(t4, "% CPC NOVO", fmt_pct(kp['pCpcN']),  "sobre base")
+kpi_card(t5, "% PROPOSTA", fmt_pct(kp['pProp']),  "sobre base")
+kpi_card(t6, "% APROVADO", fmt_pct(kp['pAprov']), "sobre base")
+kpi_card(t7, "% PAGOS",    fmt_pct(kp['pPagos']), "sobre base")
 
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown('<div class="section-title">Visão Contábil – Valores</div>', unsafe_allow_html=True)
 v1,v2,v3 = st.columns(3)
-kpi_card(v1,"CARTEIRA/BASE",f"R$ {kp['cart']:,.2f}")
-kpi_card(v2,"$ DISCAGENS",  f"R$ {kp['vDisc']:,.2f}",f"{kp['pCartAcion']:.1f}% da carteira")
-kpi_card(v3,"$ ALÔ",        f"R$ {kp['vAlo']:,.2f}", f"{kp['pCartAlo']:.1f}% da carteira")
+kpi_card(v1, "CARTEIRA/BASE", fmt_val(kp['cart']))
+kpi_card(v2, "$ DISCAGENS",  fmt_val(kp['vDisc']), fmt_pct(kp['pCartAcion']) + " da carteira")
+kpi_card(v3, "$ ALÔ",        fmt_val(kp['vAlo']),  fmt_pct(kp['pCartAlo'])   + " da carteira")
 v4,v5,v6 = st.columns(3)
-kpi_card(v4,"$ PROPOSTA",  f"R$ {kp['vProp']:,.2f}", f"{kp['pCartProp']:.2f}% da carteira")
-kpi_card(v5,"$ APROVADO",  f"R$ {kp['vAprov']:,.2f}",f"{kp['pCartAprov']:.2f}% da carteira")
-kpi_card(v6,"CASH NOVO",   f"R$ {kp['cash']:,.2f}",  f"Contábil: R$ {kp['cont']:,.2f}")
+kpi_card(v4, "$ PROPOSTA",  fmt_val(kp['vProp']),  fmt_pct(kp['pCartProp'])  + " da carteira")
+kpi_card(v5, "$ APROVADO",  fmt_val(kp['vAprov']), fmt_pct(kp['pCartAprov']) + " da carteira")
+kpi_card(v6, "CASH NOVO",   fmt_val(kp['cash']),   "Contábil: " + fmt_val(kp['cont']))
 
 st.markdown("---")
 
@@ -549,30 +544,22 @@ g1, g2 = st.columns(2)
 with g1:
     st.markdown("##### 🔻 Funil de Conversão")
     if visao_funil == "# Quantidade":
-        ey=["Clientes","Acionado","Alô","CPC","CPC Novo","Proposta","Pagos"]
-        ev=[kp['cli'],kp['cDisc'],kp['cAlo'],kp['cpc'],kp['cpcN'],kp['prop'],kp['pagos']]
+        ey = ["Clientes","Acionado","Alô","CPC","CPC Novo","Proposta","Pagos"]
+        ev = [kp['cli'],kp['cDisc'],kp['cAlo'],kp['cpc'],kp['cpcN'],kp['prop'],kp['pagos']]
+        fmt_funil = fmt_qtd
     else:
-        ey=["Carteira","$ Disc.","$ Alô","$ CPC","$ CPC Novo","$ Proposta","Cash Novo"]
-        ev=[kp['cart'],kp['vDisc'],kp['vAlo'],kp['vCpc'],kp['vCpcN'],kp['vProp'],kp['cash']]
+        ey = ["Carteira","$ Disc.","$ Alô","$ CPC","$ CPC Novo","$ Proposta","Cash Novo"]
+        ev = [kp['cart'],kp['vDisc'],kp['vAlo'],kp['vCpc'],kp['vCpcN'],kp['vProp'],kp['cash']]
+        fmt_funil = fmt_val
+
     primeiro = ev[0] if ev[0] > 0 else 1
-
-    def formatar_valor(v):
-        if visao_funil == "# Quantidade":
-            return f"{v:,.0f}".replace(",", ".")
-        else:
-            inteiro, decimal = f"{v:,.2f}".split(".")
-            inteiro = inteiro.replace(",", ".")
-            return f"R$ {inteiro},{decimal}"
-
     textos_funil = [
-        formatar_valor(v) + f"<br><br>{v / primeiro * 100:.2f}%"
+        fmt_funil(v) + "<br><br>" + f"{v/primeiro*100:.2f}".replace(".", ",") + "%"
         for v in ev
     ]
     fig_f = go.Figure(go.Funnel(
         y=ey, x=ev,
-        text=textos_funil,
-        textinfo="text",
-        texttemplate="%{text}",
+        text=textos_funil, textinfo="text", texttemplate="%{text}",
         marker=dict(color=["#EC0000","#d40000","#b00000","#900000","#700000","#500000","#2a0000"]),
         textfont=dict(color="white", size=13),
     ))
@@ -598,11 +585,19 @@ g3, g4 = st.columns(2)
 with g3:
     st.markdown("##### 📊 Propostas, Aprovações e Pagos por Segmento")
     if "SEGMENTO" in df_f.columns:
-        seg_agg = df_f.groupby("SEGMENTO", as_index=False).agg(
-            {"QTD PROPOSTAS":"sum","QTD APROVAÇÃO":"sum","PAGOS":"sum"})
+        if visao_funil == "# Quantidade":
+            seg_agg = df_f.groupby("SEGMENTO", as_index=False).agg(
+                {"QTD PROPOSTAS":"sum","QTD APROVAÇÃO":"sum","PAGOS":"sum"})
+            seg_melt = seg_agg.melt("SEGMENTO", var_name="Etapa", value_name="Valor")
+            txt_seg = seg_melt["Valor"].apply(fmt_qtd)
+        else:
+            seg_agg = df_f.groupby("SEGMENTO", as_index=False).agg(
+                {"$ PROPOSTA MOVIMENTADAS":"sum","$ APROVAÇÃO":"sum","CASH NOVO":"sum"})
+            seg_melt = seg_agg.melt("SEGMENTO", var_name="Etapa", value_name="Valor")
+            txt_seg = seg_melt["Valor"].apply(fmt_val)
         fig_b = px.bar(
-            seg_agg.melt("SEGMENTO", var_name="Etapa", value_name="Qtd"),
-            x="SEGMENTO", y="Qtd", color="Etapa", barmode="group", text="Qtd",
+            seg_melt, x="SEGMENTO", y="Valor", color="Etapa",
+            barmode="group", text=txt_seg,
             color_discrete_sequence=["#EC0000","#c00000","#800000"],
         )
         fig_b.update_traces(textposition="outside")
@@ -618,11 +613,11 @@ with g4:
         if visao_funil == "# Quantidade":
             ev_agg = df_todos.groupby("DIA UTIL", as_index=False).agg(
                 {"QTD PROPOSTAS":"sum","QTD APROVAÇÃO":"sum","PAGOS":"sum"})
-            cols_ev=["QTD PROPOSTAS","QTD APROVAÇÃO","PAGOS"]; ey_l="Quantidade"
+            ey_l = "Quantidade"
         else:
             ev_agg = df_todos.groupby("DIA UTIL", as_index=False).agg(
                 {"$ PROPOSTA MOVIMENTADAS":"sum","$ APROVAÇÃO":"sum","CASH NOVO":"sum"})
-            cols_ev=["$ PROPOSTA MOVIMENTADAS","$ APROVAÇÃO","CASH NOVO"]; ey_l="Valor (R$)"
+            ey_l = "Valor (R$)"
         fig_ev = px.line(
             ev_agg.melt("DIA UTIL", var_name="Métrica", value_name=ey_l),
             x="DIA UTIL", y=ey_l, color="Métrica", markers=True,
@@ -649,28 +644,47 @@ if grp_cols:
                   "QTD ALÔ","QTD CLIENTES ALO","QTD CPC","QTD CPC NOVO",
                   "QTD PROPOSTAS","QTD APROVAÇÃO","PAGOS"] if k in df_f.columns}
         grp_q = df_f.groupby(grp_cols, as_index=False).agg(cols_q)
-        if "QTD CLIENTES DISCADOS" in grp_q and "CLIENTE" in grp_q:
-            grp_q["% ACIONADO"] = (grp_q["QTD CLIENTES DISCADOS"]/grp_q["CLIENTE"]*100).round(2)
-        if "PAGOS" in grp_q and "CLIENTE" in grp_q:
-            grp_q["% PAGOS"]    = (grp_q["PAGOS"]/grp_q["CLIENTE"]*100).round(4)
-        st.dataframe(grp_q, use_container_width=True, hide_index=True)
+        if "QTD CLIENTES DISCADOS" in grp_q.columns and "CLIENTE" in grp_q.columns:
+            grp_q["% ACIONADO"] = (grp_q["QTD CLIENTES DISCADOS"] / grp_q["CLIENTE"] * 100)
+        if "PAGOS" in grp_q.columns and "CLIENTE" in grp_q.columns:
+            grp_q["% PAGOS"] = (grp_q["PAGOS"] / grp_q["CLIENTE"] * 100)
+        disp_q = grp_q.copy()
+        for c in cols_q:
+            if c in disp_q.columns:
+                disp_q[c] = disp_q[c].apply(fmt_qtd)
+        for c in ["% ACIONADO", "% PAGOS"]:
+            if c in disp_q.columns:
+                disp_q[c] = grp_q[c].apply(fmt_pct)
+        st.dataframe(disp_q, use_container_width=True, hide_index=True)
 
     with tab_r:
         cols_r = {k:"sum" for k in ["CARTEIRA/BASE","$ DISCAGENS","$ ALÔ","$ CPC",
                   "$ CPC NOVO","$ PROPOSTA MOVIMENTADAS","$ APROVAÇÃO","CASH NOVO","CONTÁBIL"]
                   if k in df_f.columns}
         grp_r = df_f.groupby(grp_cols, as_index=False).agg(cols_r)
-        disp = grp_r.copy()
-        for c in cols_r: disp[c] = disp[c].apply(lambda x: f"R$ {x:,.2f}")
-        st.dataframe(disp, use_container_width=True, hide_index=True)
+        disp_r = grp_r.copy()
+        for c in cols_r:
+            if c in disp_r.columns:
+                disp_r[c] = disp_r[c].apply(fmt_val)
+        st.dataframe(disp_r, use_container_width=True, hide_index=True)
 
 st.markdown("---")
-with st.expander(f"🔍 Base Completa Filtrada ({len(df_f):,} linhas)"):
-    st.dataframe(df_f, use_container_width=True, hide_index=True)
+with st.expander(f"🔍 Base Completa Filtrada ({fmt_qtd(len(df_f))} linhas)"):
+    df_exib = df_f.copy()
+    for c in ["CARTEIRA/BASE","$ DISCAGENS","$ ALÔ","$ CPC","$ CPC NOVO",
+              "$ PROPOSTA MOVIMENTADAS","$ APROVAÇÃO","CASH NOVO","CONTÁBIL"]:
+        if c in df_exib.columns:
+            df_exib[c] = df_exib[c].apply(fmt_val)
+    for c in ["CLIENTE","QTD DISCAGENS","QTD CLIENTES DISCADOS","QTD ALÔ",
+              "QTD CLIENTES ALO","QTD CPC","QTD CPC NOVO","QTD PROPOSTAS",
+              "QTD APROVAÇÃO","PAGOS"]:
+        if c in df_exib.columns:
+            df_exib[c] = df_exib[c].apply(fmt_qtd)
+    st.dataframe(df_exib, use_container_width=True, hide_index=True)
 
 st.markdown(f"""
 <div style="text-align:center; color:#555; font-size:11px; margin-top:20px; padding:10px 0;">
-    Planejamento Call Center Santander &nbsp;|&nbsp;
+    Planejamento Viana Peixoto Call Center Santander &nbsp;|&nbsp;
     BASE_CONSOLIDADA_FUNIL_ACIONAMENTOS &nbsp;|&nbsp;
     Atualizado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}
 </div>""", unsafe_allow_html=True)
