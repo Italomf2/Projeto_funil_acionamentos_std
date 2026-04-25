@@ -13,6 +13,34 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+if "logado" not in st.session_state:
+    st.session_state.logado = False
+
+if not st.session_state.logado:
+    st.markdown("""
+    <div style="text-align: center; margin-top: 15%;">
+        <h1 style="color: #EC0000;">📞 Funil de Acionamentos</h1>
+        <h3 style="color: #e0e0e0;">Santander</h3>
+        <p style="color: #888;">Sistema seguro - requer autenticação</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    with st.form("login"):
+        senha = st.text_input("🔒 Digite a senha de acesso:", type="password")
+        submitted = st.form_submit_button("✅ Acessar Dashboard", use_container_width=True)
+        
+        if submitted:
+            SENHA_CORRETA = "VIANA@2026"
+            
+            if senha == SENHA_CORRETA:
+                st.session_state.logado = True
+                st.rerun()
+            else:
+                st.error("❌ Senha incorreta! Acesso negado.")
+    
+    st.stop() 
+
+
 st.markdown("""
 <style>
     .stApp { background-color: #0f1117; color: #e0e0e0; }
@@ -268,6 +296,7 @@ def calcular_kpis(dataframe: pd.DataFrame) -> dict:
 kpis = calcular_kpis(df_filtrado)
 
 def kpi_card(col, label: str, valor: str, sub: str = ""):
+    valor = valor.replace(",", "X").replace(".", ",").replace("X", ".")
     col.markdown(f"""
     <div class="kpi-card">
         <div class="kpi-label">{label}</div>
