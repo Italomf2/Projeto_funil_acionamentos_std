@@ -38,7 +38,7 @@ st.markdown("""
     .stApp { background-color: #0f1117; color: #e0e0e0; }
     section[data-testid="stSidebar"] { background-color: #161925; }
     .titulo-principal {
-        font-size: 45px; font-weight: 800; color: #EC0000;
+        font-size: 40px; font-weight: 800; color: #EC0000;
         letter-spacing: 1px; border-bottom: 2px solid #EC0000;
         padding-bottom: 8px; margin-bottom: 20px;
     }
@@ -324,14 +324,17 @@ else:
 df_todos = filtrar(df)
 kp = calcular_kpis(df_f)
 
-if   modo_comp:       subtit = f"Comparando DU {dia_a}  ×  DU {dia_b}"
-elif dia_selecionado: subtit = f"Dia Útil {dia_selecionado}"
-else:                 subtit = "Acumulado – Todos os Dias Úteis"
+if   modo_comp:       
+    subtit = f"Comparando DU {dia_a}  ×  DU {dia_b}"
+elif dia_selecionado:   
+    subtit = f"Dia Útil {dia_selecionado}"
+else:                 
+    subtit = "Acumulado – Todos os Dias Úteis"
 
 st.markdown(f"""
 <div class="titulo-principal">
     FUNIL DE ACIONAMENTOS – SANTANDER
-    <br>{subtit}
+    {subtit}
 </div>""", unsafe_allow_html=True)
 
 
@@ -340,7 +343,7 @@ if modo_comp:
     kB = calcular_kpis(df_dB)
 
     st.markdown(
-        f'<div class="badge-comparar">⚖️ Comparando DU {dia_a} → DU {dia_b} &nbsp;|&nbsp; '
+        f'<div class="badge-comparar">DU {dia_a} → DU {dia_b} &nbsp;|&nbsp; '
         f'▲ Verde = melhora &nbsp;|&nbsp; ▼ Vermelho = piora</div>',
         unsafe_allow_html=True,
     )
@@ -439,6 +442,13 @@ if modo_comp:
         .sum().sort_values("DIA UTIL")
     )
 
+    st.markdown("""
+    <style>
+        [data-testid="stTabs"] [data-baseweb="tab-list"] {
+            padding-left: 10px;
+        }
+    </style>
+    """, unsafe_allow_html=True)
     tabs_delta = st.tabs(list(metricas_delta.keys()))
 
     for tab, (nome, col) in zip(tabs_delta, metricas_delta.items()):
@@ -588,17 +598,18 @@ with g3:
         if visao_funil == "# Quantidade":
             seg_agg = df_f.groupby("SEGMENTO", as_index=False).agg(
                 {"QTD PROPOSTAS":"sum","QTD APROVAÇÃO":"sum","PAGOS":"sum"})
-            seg_melt = seg_agg.melt("SEGMENTO", var_name="Etapa", value_name="Valor")
-            txt_seg = seg_melt["Valor"].apply(fmt_qtd)
+            seg_melt = seg_agg.melt("SEGMENTO", var_name="Etapa", value_name="Quantidade")
+            txt_seg = seg_melt["Quantidade"].apply(fmt_qtd)
         else:
             seg_agg = df_f.groupby("SEGMENTO", as_index=False).agg(
                 {"$ PROPOSTA MOVIMENTADAS":"sum","$ APROVAÇÃO":"sum","CASH NOVO":"sum"})
-            seg_melt = seg_agg.melt("SEGMENTO", var_name="Etapa", value_name="Valor")
-            txt_seg = seg_melt["Valor"].apply(fmt_val)
+            seg_melt = seg_agg.melt("SEGMENTO", var_name="Etapa", value_name="Valor (R$)")
+            txt_seg = seg_melt["Valor (R$)"].apply(fmt_val)
+        eixo_y = "Quantidade" if visao_funil == "# Quantidade" else "Valor (R$)"
         fig_b = px.bar(
-            seg_melt, x="SEGMENTO", y="Valor", color="Etapa",
+            seg_melt, x="SEGMENTO", y=eixo_y, color="Etapa",
             barmode="group", text=txt_seg,
-            color_discrete_sequence=["#EC0000","#c00000","#800000"],
+            color_discrete_sequence=["#EC0000","#8B0000","#560000"],
         )
         fig_b.update_traces(textposition="outside")
         fig_b.update_layout(paper_bgcolor="#1c1f2e", plot_bgcolor="#1c1f2e",
@@ -635,6 +646,11 @@ with g4:
 st.markdown("---")
 
 st.markdown('<div class="section-title">📋 Detalhamento por Macro e Segmento</div>', unsafe_allow_html=True)
+st.markdown("""
+<style>
+    [data-testid="stTabs"] [data-baseweb="tab-list"] { padding-left: 10px; }
+</style>
+""", unsafe_allow_html=True)
 tab_q, tab_r = st.tabs(["📊 Quantidade (#)", "💰 Contábil (R$)"])
 grp_cols = [c for c in ["MACRO","SEGMENTO"] if c in df_f.columns]
 
