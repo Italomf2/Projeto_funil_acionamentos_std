@@ -437,10 +437,12 @@ if modo_comp:
             "Cash Novo":  "CASH NOVO",
         }
 
-    evol = (
-        df_evolucao.groupby("DIA UTIL", as_index=False)[list(metricas_delta.values())]
-        .sum().sort_values("DIA UTIL")
-    )
+    if "MÊS" in df_evolucao.columns and len(df_evolucao["MÊS"].dropna().unique()) > 0:
+        meses_evol = sorted(df_evolucao["MÊS"].dropna().unique().tolist())
+        mes_evol_sel = st.selectbox("📆 Mês para Variação Diária", meses_evol, index=len(meses_evol)-1, key="mes_evol")
+        df_evolucao = df_evolucao[df_evolucao["MÊS"] == mes_evol_sel]
+
+    evol = (df_evolucao.groupby("DIA UTIL", as_index=False)[list(metricas_delta.values())].sum().sort_values("DIA UTIL"))
 
     st.markdown("""
     <style>
