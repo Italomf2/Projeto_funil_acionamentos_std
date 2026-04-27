@@ -114,7 +114,7 @@ def fmt_kpi(chave, val):
     else:
         return fmt_qtd(val)
 
-URL_ARQUIVO = "https://docs.google.com/spreadsheets/d/1keNtErjgt2JKYNLTrZU0fiAA6kHg48vF/export?format=xlsx"
+URL_ARQUIVO = "https://docs.google.com/spreadsheets/d/1P36iXZtNcv9qcErcOkYX823wEnwTe5Ad/export?format=xlsx"
 NOME_SHEET  = "BD"
 
 @st.cache_data(show_spinner="⏳ Carregando dados...", ttl=600)
