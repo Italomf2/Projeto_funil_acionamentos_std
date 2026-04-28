@@ -38,30 +38,51 @@ st.markdown("""
     .stApp { background-color: #0f1117; color: #e0e0e0; }
     section[data-testid="stSidebar"] { background-color: #161925; }
     .titulo-principal {
-        font-size: 40px; font-weight: 800; color: #EC0000;
-        letter-spacing: 1px; border-bottom: 2px solid #EC0000;
-        padding-bottom: 8px; margin-bottom: 20px;
+        font-size: 40px; 
+        font-weight: 800; 
+        color: #EC0000;
+        letter-spacing: 1px; 
+        border-bottom: 2px solid #EC0000;
+        padding-bottom: 8px; 
+        margin-bottom: 20px;
     }
     .section-title {
-        font-size:28px; font-weight: 700; color: #EC0000;
-        margin: 18px 0 10px 0; border-left: 4px solid #EC0000;
+        font-size:28px; 
+        font-weight: 700; 
+        color: #EC0000;
+        margin: 18px 0 10px 0; 
+        border-left: 4px solid #EC0000;
         padding-left: 20px;
     }
     .badge-comparar {
-        background: #2a1f1f; border: 1px solid #EC0000; border-radius: 6px;
-        padding: 6px 14px; font-size: 13px; color: #ffaaaa;
-        margin-bottom: 16px; display: inline-block;
+        background: #2a1f1f; 
+        border: 1px solid #EC0000; 
+        border-radius: 6px;
+        padding: 6px 14px;
+        font-size: 13px;
+        color: #ffaaaa;
+        margin-bottom: 16px;
+        display: inline-block;
     }
     .kpi-card {
-        flex: 1 1 auto; width: 100%; min-width: 100px;
-        background: #1c1f2e; border-left: 4px solid #EC0000;
-        border-radius: 10px; padding: 10px 20px; margin-bottom: 10px;
-        height: auto; min-height: 85px; display: flex;
-        flex-direction: column; justify-content: center; text-align: center;
+        flex: 1 1 auto;
+        width: 100%; 
+        min-width: 100px;
+        background: #1c1f2e;
+        border-left: 4px solid #EC0000;
+        border-radius: 10px; 
+        padding: 10px 20px; 
+        margin-bottom: 10px;
+        height: auto; 
+        min-height: 85px; 
+        display: flex;
+        flex-direction: column; 
+        justify-content: center; 
+        text-align: center;
     }
     .kpi-label { font-size: 11px; color: #888; text-transform: uppercase;
                  letter-spacing: 1px; font-weight: 700; }
-    .kpi-value { font-size: 25px; font-weight: 800; color: #fff; line-height: 1.2; }
+    .kpi-value { font-size: 20px; font-weight: 800; color: #fff; line-height: 1.2; }
     .kpi-sub   { font-size: 11px; color: #aaa; margin-top: 3px; font-weight: 600; }
     .kpi-delta {
         background: #12141f; border: 1px solid #2a2d3e;
@@ -343,7 +364,7 @@ if modo_comp:
     kB = calcular_kpis(df_dB)
 
     st.markdown(
-        f'<div class="badge-comparar">DU {dia_a} → DU {dia_b} &nbsp;|&nbsp; '
+        f'<div class="badge-comparar">(A) DU {dia_a} → (B) DU {dia_b} &nbsp;|&nbsp; '
         f'▲ Verde = melhora &nbsp;|&nbsp; ▼ Vermelho = piora</div>',
         unsafe_allow_html=True,
     )
@@ -399,10 +420,10 @@ if modo_comp:
         fmt_bar = fmt_val
 
     fig_comp = go.Figure()
-    fig_comp.add_trace(go.Bar(name=f"DU {dia_a}", x=etapas, y=vA,
+    fig_comp.add_trace(go.Bar(name=f"DU {dia_a} (A)", x=etapas, y=vA,
                               marker_color="#EC0000",
                               text=[fmt_bar(v) for v in vA], textposition="outside"))
-    fig_comp.add_trace(go.Bar(name=f"DU {dia_b}", x=etapas, y=vB,
+    fig_comp.add_trace(go.Bar(name=f"DU {dia_b} (B)", x=etapas, y=vB,
                               marker_color="#ff9999",
                               text=[fmt_bar(v) for v in vB], textposition="outside"))
     fig_comp.update_layout(
@@ -417,7 +438,7 @@ if modo_comp:
         fig_comp.update_traces(textfont=dict(size=14))
     st.plotly_chart(fig_comp, use_container_width=True)
 
-    st.markdown('<div class="section-title">📈 Variação Diária por Dia Útil</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Variação Diária por Dia Útil</div>', unsafe_allow_html=True)
 
     df_evolucao = filtrar(df).copy()
 
@@ -554,7 +575,7 @@ st.markdown("---")
 
 g1, g2 = st.columns(2)
 with g1:
-    st.markdown("##### 🔻 Funil de Conversão")
+    st.markdown("* #### Funil de Conversão")
     if visao_funil == "# Quantidade":
         ey = ["Clientes","Acionado","Alô","CPC","CPC Novo","Proposta","Pagos"]
         ev = [kp['cli'],kp['cDisc'],kp['cAlo'],kp['cpc'],kp['cpcN'],kp['prop'],kp['pagos']]
@@ -581,7 +602,7 @@ with g1:
     st.plotly_chart(fig_f, use_container_width=True)
 
 with g2:
-    st.markdown("##### 🗺️ Distribuição por Macro Região")
+    st.markdown("* #### Distribuição por Macro Região")
     if "MACRO" in df_f.columns:
         col_p = "CLIENTE" if visao_funil == "# Quantidade" else "CONTÁBIL"
         pizza = df_f.groupby("MACRO", as_index=False)[col_p].sum()
@@ -595,7 +616,7 @@ with g2:
 
 g3, g4 = st.columns(2)
 with g3:
-    st.markdown("##### 📊 Propostas, Aprovações e Pagos por Segmento")
+    st.markdown("* #### Propostas, Aprovações e Pagos por Segmento")
     if "SEGMENTO" in df_f.columns:
         if visao_funil == "# Quantidade":
             seg_agg = df_f.groupby("SEGMENTO", as_index=False).agg(
@@ -621,7 +642,7 @@ with g3:
         st.plotly_chart(fig_b, use_container_width=True)
 
 with g4:
-    st.markdown("##### 📅 Evolução por Dia Útil")
+    st.markdown("* #### Evolução por Dia Útil")
     if "DIA UTIL" in df_todos.columns:
         if visao_funil == "# Quantidade":
             ev_agg = df_todos.groupby("DIA UTIL", as_index=False).agg(
@@ -647,7 +668,7 @@ with g4:
 
 st.markdown("---")
 
-st.markdown('<div class="section-title">📋 Detalhamento por Macro e Segmento</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">Detalhamento por Macro e Segmento</div>', unsafe_allow_html=True)
 st.markdown("""
 <style>
     [data-testid="stTabs"] [data-baseweb="tab-list"] { padding-left: 10px; }

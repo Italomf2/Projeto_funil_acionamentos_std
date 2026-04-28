@@ -216,10 +216,10 @@ st.markdown("""
 <style>
     div[data-testid="stButton"] button {
         position: relative !important;
-        margin-top: -220px !important;   /* sobe o botão para cobrir o card */
-        height: 220px !important;        /* mesma altura do card */
+        margin-top: -220px !important;  
+        height: 220px !important;       
         width: 100% !important;
-        opacity: 0 !important;           /* invisível mas clicável */
+        opacity: 0 !important;          
         cursor: pointer !important;
         z-index: 10 !important;
     }
@@ -256,6 +256,6 @@ for col, banco in zip(cols, BANCOS):
 
 st.markdown("""
 <div class="rodape">
-    Viana Peixoto Advogados Associados &nbsp;·&nbsp; Uso interno &nbsp;·&nbsp; Acesso restrito
+    Viana Peixoto Advogados Associados &nbsp;·&nbsp; Uso interno &nbsp;·&nbsp;
 </div>
 """, unsafe_allow_html=True)
